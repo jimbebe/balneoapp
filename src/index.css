@@ -4,6 +4,147 @@
   box-sizing: border-box;
 }
 
+/* Auth Screen */
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #C27B6B 0%, #A8675A 100%);
+  padding: 1rem;
+}
+
+.auth-container {
+  background: white;
+  border-radius: 1rem;
+  padding: 2.5rem;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  max-width: 360px;
+  width: 100%;
+}
+
+.auth-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border-radius: 50%;
+  margin: 0 auto 1.5rem;
+}
+
+.auth-container h1 {
+  font-size: 1.75rem;
+  color: var(--gray-900);
+  margin-bottom: 0.5rem;
+}
+
+.auth-container > p {
+  color: var(--gray-500);
+  margin-bottom: 2rem;
+}
+
+.code-display {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.code-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--gray-200);
+  transition: all 0.2s;
+}
+
+.code-dot.filled {
+  background: var(--primary);
+  transform: scale(1.1);
+}
+
+.code-dot.error {
+  background: var(--danger);
+  animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.keypad-btn {
+  width: 64px;
+  height: 64px;
+  border: none;
+  border-radius: 50%;
+  background: var(--gray-100);
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--gray-800);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin: 0 auto;
+}
+
+.keypad-btn:hover:not(:disabled) {
+  background: var(--gray-200);
+}
+
+.keypad-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.keypad-btn.empty {
+  background: transparent;
+  cursor: default;
+}
+
+.keypad-btn.delete {
+  background: var(--gray-200);
+  font-size: 1.75rem;
+}
+
+.auth-error {
+  color: var(--danger);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.auth-submit {
+  width: 100%;
+  padding: 1rem;
+  background: var(--primary);
+  border: none;
+  border-radius: var(--radius);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.auth-submit:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+.auth-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 :root {
   --primary: #C27B6B;
   --primary-dark: #A8675A;
