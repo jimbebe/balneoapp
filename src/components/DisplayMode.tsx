@@ -1,17 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../store';
-import { Play, Pause, SkipForward, RotateCcw, X, Volume2, Check, Users, ChevronLeft } from 'lucide-react';
+import { useActiveSession, type PatientSlotState } from '../context/ActiveSessionContext';
+import { Play, Pause, SkipForward, RotateCcw, X, Volume2, Check, Users, Minimize2 } from 'lucide-react';
 import type { Exercise, Session, Patient } from '../types';
-
-interface PatientSlotState {
-  patientId: string;
-  sessionId: string;
-  currentExerciseIndex: number;
-  timeRemaining: number;
-  isRunning: boolean;
-  isComplete: boolean;
-}
 
 interface PatientSlotConfig {
   patientId: string;
@@ -49,7 +41,7 @@ function PatientSlot({
 
   const currentExercise = sessionExercises[slot.currentExerciseIndex];
 
-  const nextExercise = useCallback(() => {
+  const nextExerciseAction = useCallback(() => {
     if (slot.currentExerciseIndex < sessionExercises.length - 1) {
       const nextEx = sessionExercises[slot.currentExerciseIndex + 1];
       onUpdate(slotIndex, {
@@ -66,31 +58,6 @@ function PatientSlot({
     }
   }, [slot.currentExerciseIndex, sessionExercises, slotIndex, onUpdate, playBeep]);
 
-  useEffect(() => {
-    if (currentExercise && slot.timeRemaining === 0 && !slot.isComplete && !slot.isRunning) {
-      onUpdate(slotIndex, { timeRemaining: currentExercise.duration });
-    }
-  }, [currentExercise, slot.timeRemaining, slot.isComplete, slot.isRunning, slotIndex, onUpdate]);
-
-  useEffect(() => {
-    let interval: number | null = null;
-
-    if (slot.isRunning && slot.timeRemaining > 0) {
-      interval = window.setInterval(() => {
-        if (slot.timeRemaining <= 1) {
-          nextExercise();
-        } else {
-          if (slot.timeRemaining === 4) playBeep();
-          onUpdate(slotIndex, { timeRemaining: slot.timeRemaining - 1 });
-        }
-      }, 1000);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [slot.isRunning, slot.timeRemaining, nextExercise, playBeep, slotIndex, onUpdate]);
-
   const resetSlot = () => {
     onUpdate(slotIndex, {
       currentExerciseIndex: 0,
@@ -105,7 +72,7 @@ function PatientSlot({
   };
 
   const skipExercise = () => {
-    nextExercise();
+    nextExerciseAction();
   };
 
   const isCompact = totalSlots >= 3;
@@ -214,17 +181,15 @@ function PatientSlot({
 export function DisplayMode() {
   const navigate = useNavigate();
   const { sessions, patients, getSession, getExercise, addPatientSession, getPatient } = useApp();
+  const { slots, isSessionActive, startSession, updateSlot, endSession } = useActiveSession();
 
   // Configuration state
-  const [isConfiguring, setIsConfiguring] = useState(true);
   const [slotCount, setSlotCount] = useState<2 | 3 | 4>(2);
   const [slotConfigs, setSlotConfigs] = useState<PatientSlotConfig[]>([
     { patientId: '', sessionId: '' },
     { patientId: '', sessionId: '' },
   ]);
 
-  // Display state
-  const [slots, setSlots] = useState<PatientSlotState[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -260,7 +225,43 @@ export function DisplayMode() {
 
   const canStartSession = slotConfigs.every(config => config.patientId && config.sessionId);
 
+  const calculateSessionDuration = (sessionId: string): number => {
+    const session = getSession(sessionId);
+    if (!session) return 0;
+    return session.exercises.reduce((total, se) => {
+      const exercise = getExercise(se.exerciseId);
+      return total + (exercise?.duration || 0);
+    }, 0);
+  };
+
+  const formatDuration = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return secs > 0 ? `${mins}min ${secs}s` : `${mins}min`;
+  };
+
   const startMultiSession = () => {
+    // Vérifier si les sessions ont des durées différentes
+    const durations = slotConfigs.map(config => ({
+      patient: patients.find(p => p.id === config.patientId),
+      session: getSession(config.sessionId),
+      duration: calculateSessionDuration(config.sessionId),
+    }));
+
+    const uniqueDurations = [...new Set(durations.map(d => d.duration))];
+
+    if (uniqueDurations.length > 1) {
+      const durationList = durations
+        .map(d => `• ${d.patient?.firstName} ${d.patient?.lastName?.charAt(0)}. : ${formatDuration(d.duration)} (${d.session?.name})`)
+        .join('\n');
+
+      const confirmed = window.confirm(
+        `Attention : les sessions n'ont pas la même durée !\n\n${durationList}\n\nVoulez-vous continuer ?`
+      );
+
+      if (!confirmed) return;
+    }
+
     const initialSlots: PatientSlotState[] = slotConfigs.map(config => {
       const session = getSession(config.sessionId);
       const exercises = session?.exercises.sort((a, b) => a.order - b.order) || [];
@@ -283,15 +284,8 @@ export function DisplayMode() {
       };
     });
 
-    setSlots(initialSlots);
-    setIsConfiguring(false);
+    startSession(initialSlots);
   };
-
-  const updateSlot = useCallback((index: number, updates: Partial<PatientSlotState>) => {
-    setSlots(prevSlots =>
-      prevSlots.map((slot, i) => (i === index ? { ...slot, ...updates } : slot))
-    );
-  }, []);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -303,16 +297,19 @@ export function DisplayMode() {
     }
   };
 
-  const exitDisplay = () => {
+  const minimizeDisplay = () => {
     if (document.fullscreenElement) {
       document.exitFullscreen();
     }
     navigate('/sessions');
   };
 
-  const backToConfig = () => {
-    setIsConfiguring(true);
-    setSlots([]);
+  const stopSession = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    }
+    endSession();
+    navigate('/sessions');
   };
 
   // Global controls
@@ -321,33 +318,30 @@ export function DisplayMode() {
 
   const toggleAllRunning = () => {
     const shouldRun = !allRunning;
-    setSlots(prevSlots =>
-      prevSlots.map(slot =>
-        slot.isComplete ? slot : { ...slot, isRunning: shouldRun }
-      )
-    );
+    slots.forEach((slot, index) => {
+      if (!slot.isComplete) {
+        updateSlot(index, { isRunning: shouldRun });
+      }
+    });
   };
 
   const resetAll = () => {
-    setSlots(prevSlots =>
-      prevSlots.map(slot => {
-        const session = getSession(slot.sessionId);
-        const exercises = session?.exercises.sort((a, b) => a.order - b.order) || [];
-        const firstExercise = exercises[0] ? getExercise(exercises[0].exerciseId) : null;
+    slots.forEach((slot, index) => {
+      const session = getSession(slot.sessionId);
+      const exercises = session?.exercises.sort((a, b) => a.order - b.order) || [];
+      const firstExercise = exercises[0] ? getExercise(exercises[0].exerciseId) : null;
 
-        return {
-          ...slot,
-          currentExerciseIndex: 0,
-          timeRemaining: firstExercise?.duration || 0,
-          isRunning: false,
-          isComplete: false,
-        };
-      })
-    );
+      updateSlot(index, {
+        currentExerciseIndex: 0,
+        timeRemaining: firstExercise?.duration || 0,
+        isRunning: false,
+        isComplete: false,
+      });
+    });
   };
 
-  // Configuration screen
-  if (isConfiguring) {
+  // Configuration screen (shown when no active session)
+  if (!isSessionActive) {
     return (
       <div className="multi-config">
         <div className="multi-config-header">
@@ -430,7 +424,7 @@ export function DisplayMode() {
     );
   }
 
-  // Multi-patient display
+  // Multi-patient display (shown when session is active)
   return (
     <div
       ref={containerRef}
@@ -442,10 +436,12 @@ export function DisplayMode() {
       />
 
       <div className="multi-display-header">
-        <button className="btn-back" onClick={backToConfig}>
-          <ChevronLeft size={20} />
-          Configuration
-        </button>
+        <div className="header-left">
+          <button className="btn-back" onClick={minimizeDisplay} title="Réduire (session continue)">
+            <Minimize2 size={20} />
+            Réduire
+          </button>
+        </div>
 
         <div className="global-controls">
           {!allComplete && (
@@ -464,9 +460,12 @@ export function DisplayMode() {
           )}
         </div>
 
-        <button className="btn-close" onClick={exitDisplay}>
-          <X size={24} />
-        </button>
+        <div className="header-right">
+          <button className="btn-stop" onClick={stopSession} title="Arrêter la session">
+            <X size={20} />
+            Arrêter
+          </button>
+        </div>
       </div>
 
       <div className={`multi-display-grid slots-${slots.length}`}>

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './store';
+import { ActiveSessionProvider } from './context/ActiveSessionContext';
 import { Layout } from './components/Layout';
 import { ExerciseList } from './components/ExerciseList';
 import { SessionList } from './components/SessionList';
@@ -9,6 +10,7 @@ import { DisplayMode } from './components/DisplayMode';
 function App() {
   return (
     <AppProvider>
+      <ActiveSessionProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Layout />}>
@@ -20,6 +22,7 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      </ActiveSessionProvider>
     </AppProvider>
   );
 }

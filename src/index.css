@@ -86,6 +86,34 @@ body {
   color: white;
 }
 
+.nav-links a {
+  position: relative;
+}
+
+.session-badge {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: var(--success);
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: white;
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% { transform: translateY(-50%) scale(1); }
+  50% { transform: translateY(-50%) scale(1.1); }
+}
+
 .sidebar-footer {
   margin-top: auto;
   padding: 1rem 1.5rem;
@@ -117,6 +145,38 @@ body {
   flex: 1;
   padding: 2rem;
   overflow-y: auto;
+}
+
+/* Floating session button */
+.floating-session-btn {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  background: var(--success);
+  border: none;
+  border-radius: 9999px;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
+  transition: all 0.2s;
+  z-index: 50;
+  animation: floatPulse 2s ease-in-out infinite;
+}
+
+.floating-session-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 25px rgba(34, 197, 94, 0.5);
+}
+
+@keyframes floatPulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4); }
+  50% { box-shadow: 0 4px 30px rgba(34, 197, 94, 0.6); }
 }
 
 /* Page Header */
@@ -1159,6 +1219,13 @@ body {
   margin-bottom: 1rem;
 }
 
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .btn-back {
   display: flex;
   align-items: center;
@@ -1175,6 +1242,24 @@ body {
 
 .btn-back:hover {
   background: rgba(255,255,255,0.25);
+}
+
+.btn-stop {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  background: var(--danger);
+  border: none;
+  border-radius: var(--radius);
+  color: white;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-stop:hover {
+  background: var(--danger-dark);
 }
 
 .global-controls {
