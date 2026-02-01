@@ -5,9 +5,9 @@
 }
 
 :root {
-  --primary: #0066cc;
-  --primary-dark: #0052a3;
-  --primary-light: #e6f0ff;
+  --primary: #C27B6B;
+  --primary-dark: #A8675A;
+  --primary-light: #F7EFED;
   --success: #22c55e;
   --success-dark: #16a34a;
   --danger: #ef4444;
@@ -43,7 +43,7 @@ body {
 
 .sidebar {
   width: 220px;
-  background: var(--gray-900);
+  background: #C27B6B;
   color: white;
   padding: 1.5rem 0;
   display: flex;
@@ -52,12 +52,13 @@ body {
 
 .logo {
   padding: 0 1.5rem 1.5rem;
-  border-bottom: 1px solid var(--gray-700);
+  border-bottom: 1px solid rgba(255,255,255,0.2);
 }
 
 .logo h1 {
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1.5rem;
+  font-weight: 300;
+  letter-spacing: 0.05em;
 }
 
 .nav-links {
@@ -70,25 +71,25 @@ body {
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1.5rem;
-  color: var(--gray-400);
+  color: rgba(255,255,255,0.7);
   text-decoration: none;
   transition: all 0.2s;
 }
 
 .nav-links a:hover {
-  background: var(--gray-800);
+  background: rgba(255,255,255,0.1);
   color: white;
 }
 
 .nav-links a.active {
-  background: var(--primary);
+  background: rgba(255,255,255,0.2);
   color: white;
 }
 
 .sidebar-footer {
   margin-top: auto;
   padding: 1rem 1.5rem;
-  border-top: 1px solid var(--gray-700);
+  border-top: 1px solid rgba(255,255,255,0.2);
 }
 
 .reset-btn {
@@ -98,17 +99,17 @@ body {
   width: 100%;
   padding: 0.5rem 0.75rem;
   background: transparent;
-  border: 1px solid var(--gray-600);
+  border: 1px solid rgba(255,255,255,0.3);
   border-radius: var(--radius);
-  color: var(--gray-400);
+  color: rgba(255,255,255,0.7);
   font-size: 0.75rem;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .reset-btn:hover {
-  background: var(--gray-800);
-  border-color: var(--gray-500);
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.5);
   color: white;
 }
 
@@ -725,7 +726,7 @@ body {
 .display-mode {
   position: fixed;
   inset: 0;
-  background: linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 100%);
+  background: linear-gradient(135deg, #C27B6B 0%, #A8675A 100%);
   color: white;
   display: flex;
   flex-direction: column;
@@ -744,6 +745,7 @@ body {
   position: relative;
   margin-bottom: 1.5rem;
 }
+
 
 .patient-badge {
   position: absolute;
@@ -910,7 +912,8 @@ body {
 .btn-control.btn-play {
   width: 80px;
   height: 80px;
-  background: var(--primary);
+  background: white;
+  color: #C27B6B;
 }
 
 .fullscreen .btn-control {
@@ -924,7 +927,7 @@ body {
 }
 
 .btn-control.btn-play:hover {
-  background: var(--primary-dark);
+  background: rgba(255,255,255,0.9);
 }
 
 .btn-control.btn-play.playing {
@@ -1012,6 +1015,521 @@ body {
   border-radius: var(--radius);
   font-size: 0.75rem;
   opacity: 0.7;
+}
+
+/* Multi-Patient Configuration */
+.multi-config {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.multi-config-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.multi-config-header h2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  font-size: 1.75rem;
+  color: var(--gray-900);
+  margin-bottom: 0.5rem;
+}
+
+.multi-config-header p {
+  color: var(--gray-500);
+}
+
+.multi-config-content {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 2rem;
+}
+
+.slot-count-selector {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.slot-count-selector label {
+  display: block;
+  margin-bottom: 1rem;
+  font-weight: 500;
+  color: var(--gray-700);
+}
+
+.slot-count-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.slot-count-btn {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius);
+  background: white;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.slot-count-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.slot-count-btn.active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: white;
+}
+
+.slot-configs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.slot-config-card {
+  padding: 1.25rem;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+}
+
+.slot-config-card h4 {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.slot-config-card .form-group select {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  background: white;
+  cursor: pointer;
+}
+
+.slot-config-card .form-group select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.multi-config-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--gray-200);
+}
+
+.multi-config-actions .btn {
+  padding: 0.875rem 2rem;
+  font-size: 1rem;
+}
+
+.multi-config-actions .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Multi-Patient Display */
+.multi-display {
+  display: flex;
+  flex-direction: column;
+}
+
+.multi-display-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.btn-back {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  border-radius: var(--radius);
+  color: white;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-back:hover {
+  background: rgba(255,255,255,0.25);
+}
+
+.global-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.btn-global {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-global:hover {
+  background: rgba(255,255,255,0.25);
+  transform: scale(1.05);
+}
+
+.btn-global-play {
+  width: 56px;
+  height: 56px;
+  background: white;
+  color: var(--primary);
+}
+
+.btn-global-play:hover {
+  background: rgba(255,255,255,0.9);
+}
+
+.btn-global-play.playing {
+  background: var(--warning);
+  color: white;
+}
+
+/* Multi-Display Grid */
+.multi-display-grid {
+  flex: 1;
+  display: grid;
+  gap: 1rem;
+  min-height: 0;
+}
+
+.multi-display-grid.slots-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.multi-display-grid.slots-3 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.multi-display-grid.slots-4 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+/* Patient Slot */
+.patient-slot {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255,255,255,0.1);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  border: 2px solid transparent;
+  transition: border-color 0.3s;
+}
+
+.patient-slot.slot-running {
+  border-color: var(--success);
+}
+
+.patient-slot-complete {
+  background: rgba(34, 197, 94, 0.2);
+}
+
+.slot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.slot-patient-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.slot-session-name {
+  font-size: 0.875rem;
+  opacity: 0.7;
+}
+
+.slot-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.slot-progress-segments {
+  flex: 1;
+  display: flex;
+  gap: 4px;
+}
+
+.slot-progress-segment {
+  flex: 1;
+  height: 10px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 5px;
+  transition: all 0.3s ease;
+}
+
+.slot-progress-segment.completed {
+  background: var(--success);
+}
+
+.slot-progress-segment.current {
+  background: var(--warning);
+  animation: segmentPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes segmentPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.slot-progress-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+.slot-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.slot-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.slot-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-left: 1.5rem;
+  border-left: 1px solid rgba(255,255,255,0.15);
+}
+
+.slot-exercise-name {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  line-height: 1.1;
+}
+
+.slot-instructions {
+  font-size: 1.5rem;
+  line-height: 1.5;
+  opacity: 0.95;
+  margin-bottom: 0.75rem;
+}
+
+.slot-next-exercise {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255,255,255,0.1);
+  border-radius: 9999px;
+  font-size: 0.9rem;
+}
+
+.slot-next-label {
+  opacity: 0.7;
+  font-weight: 500;
+}
+
+.slot-next-name {
+  font-weight: 600;
+}
+
+.slot-next-end {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.slot-timer {
+  font-size: 5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
+}
+
+.slot-timer.timer-warning {
+  color: var(--warning);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.slot-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.btn-slot-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-slot-control:hover {
+  background: rgba(255,255,255,0.25);
+  transform: scale(1.05);
+}
+
+.btn-slot-control:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-slot-play {
+  width: 56px;
+  height: 56px;
+  background: white;
+  color: var(--primary);
+}
+
+.btn-slot-play:hover {
+  background: rgba(255,255,255,0.9);
+}
+
+.btn-slot-play.playing {
+  background: var(--warning);
+  color: white;
+}
+
+/* Slot Complete State */
+.slot-complete-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.slot-complete-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background: var(--success);
+  border-radius: 50%;
+  margin-bottom: 1rem;
+}
+
+.slot-complete-content h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.slot-complete-content p {
+  font-size: 1rem;
+  opacity: 0.7;
+  margin-bottom: 1rem;
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+}
+
+/* Fullscreen adaptations for multi-display */
+.fullscreen.multi-display .slot-exercise-name {
+  font-size: 3.5rem;
+}
+
+.fullscreen.multi-display .slot-instructions {
+  font-size: 2rem;
+}
+
+.fullscreen.multi-display .slot-timer {
+  font-size: 6rem;
+}
+
+.fullscreen.multi-display .slot-patient-name {
+  font-size: 1.5rem;
+}
+
+.fullscreen.multi-display .slot-session-name {
+  font-size: 1rem;
+}
+
+.fullscreen.multi-display .slot-progress-segment {
+  height: 12px;
+}
+
+.fullscreen.multi-display .slot-next-exercise {
+  font-size: 1rem;
+}
+
+.fullscreen.multi-display .btn-slot-control {
+  width: 52px;
+  height: 52px;
+}
+
+.fullscreen.multi-display .btn-slot-play {
+  width: 68px;
+  height: 68px;
+}
+
+.fullscreen.multi-display .slot-complete-icon {
+  width: 100px;
+  height: 100px;
+}
+
+.fullscreen.multi-display .slot-complete-content h3 {
+  font-size: 2rem;
+}
+
+.fullscreen.multi-display .slot-complete-content p {
+  font-size: 1.125rem;
 }
 
 .display-complete {
@@ -1139,5 +1657,77 @@ body {
 
   .exercise-name {
     font-size: 1.5rem;
+  }
+
+  /* Multi-patient responsive */
+  .multi-config {
+    padding: 1rem;
+  }
+
+  .multi-config-content {
+    padding: 1rem;
+  }
+
+  .slot-configs {
+    grid-template-columns: 1fr;
+  }
+
+  .multi-display-grid.slots-2,
+  .multi-display-grid.slots-3,
+  .multi-display-grid.slots-4 {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .patient-slot {
+    padding: 1rem;
+  }
+
+  .slot-content {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .slot-right {
+    padding-left: 0;
+    border-left: none;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255,255,255,0.15);
+  }
+
+  .slot-exercise-name {
+    font-size: 1.5rem;
+  }
+
+  .slot-timer {
+    font-size: 3.5rem;
+  }
+
+  .slot-instructions {
+    font-size: 1.1rem;
+  }
+
+  .btn-slot-control {
+    width: 38px;
+    height: 38px;
+  }
+
+  .btn-slot-play {
+    width: 48px;
+    height: 48px;
+  }
+
+  .global-controls {
+    gap: 0.5rem;
+  }
+
+  .btn-global {
+    width: 40px;
+    height: 40px;
+  }
+
+  .btn-global-play {
+    width: 48px;
+    height: 48px;
   }
 }

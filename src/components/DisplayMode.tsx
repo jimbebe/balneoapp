@@ -1,43 +1,234 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../store';
-import { Play, Pause, SkipForward, RotateCcw, X, Volume2, Check } from 'lucide-react';
+import { Play, Pause, SkipForward, RotateCcw, X, Volume2, Check, Users, ChevronLeft } from 'lucide-react';
+import type { Exercise, Session, Patient } from '../types';
 
-export function DisplayMode() {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const { sessions, getSession, getExercise, addPatientSession, getPatient } = useApp();
+interface PatientSlotState {
+  patientId: string;
+  sessionId: string;
+  currentExerciseIndex: number;
+  timeRemaining: number;
+  isRunning: boolean;
+  isComplete: boolean;
+}
 
-  const sessionId = searchParams.get('session');
-  const patientId = searchParams.get('patient');
+interface PatientSlotConfig {
+  patientId: string;
+  sessionId: string;
+}
 
-  const [selectedSession, setSelectedSession] = useState<string | null>(sessionId);
-  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
-  const [timeRemaining, setTimeRemaining] = useState(0);
-  const [isRunning, setIsRunning] = useState(false);
-  const [isComplete, setIsComplete] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const session = selectedSession ? getSession(selectedSession) : null;
-  const patient = patientId ? getPatient(patientId) : null;
+function PatientSlot({
+  slot,
+  slotIndex,
+  onUpdate,
+  getSession,
+  getExercise,
+  getPatient,
+  formatTime,
+  playBeep,
+  totalSlots,
+}: {
+  slot: PatientSlotState;
+  slotIndex: number;
+  onUpdate: (index: number, updates: Partial<PatientSlotState>) => void;
+  getSession: (id: string) => Session | undefined;
+  getExercise: (id: string) => Exercise | undefined;
+  getPatient: (id: string) => Patient | undefined;
+  formatTime: (seconds: number) => string;
+  playBeep: () => void;
+  totalSlots: number;
+}) {
+  const session = getSession(slot.sessionId);
+  const patient = getPatient(slot.patientId);
 
   const sessionExercises = session?.exercises
     .sort((a, b) => a.order - b.order)
     .map(se => getExercise(se.exerciseId))
-    .filter(Boolean) || [];
+    .filter(Boolean) as Exercise[] || [];
 
-  const currentExercise = sessionExercises[currentExerciseIndex];
+  const currentExercise = sessionExercises[slot.currentExerciseIndex];
 
-  const totalDuration = sessionExercises.reduce((sum, ex) => sum + (ex?.duration || 0), 0);
-  const completedDuration = sessionExercises
-    .slice(0, currentExerciseIndex)
-    .reduce((sum, ex) => sum + (ex?.duration || 0), 0);
-  const progressPercent = totalDuration > 0
-    ? ((completedDuration + (currentExercise ? currentExercise.duration - timeRemaining : 0)) / totalDuration) * 100
-    : 0;
+  const nextExercise = useCallback(() => {
+    if (slot.currentExerciseIndex < sessionExercises.length - 1) {
+      const nextEx = sessionExercises[slot.currentExerciseIndex + 1];
+      onUpdate(slotIndex, {
+        currentExerciseIndex: slot.currentExerciseIndex + 1,
+        timeRemaining: nextEx?.duration || 0,
+      });
+      playBeep();
+    } else {
+      onUpdate(slotIndex, {
+        isRunning: false,
+        isComplete: true,
+      });
+      playBeep();
+    }
+  }, [slot.currentExerciseIndex, sessionExercises, slotIndex, onUpdate, playBeep]);
+
+  useEffect(() => {
+    if (currentExercise && slot.timeRemaining === 0 && !slot.isComplete && !slot.isRunning) {
+      onUpdate(slotIndex, { timeRemaining: currentExercise.duration });
+    }
+  }, [currentExercise, slot.timeRemaining, slot.isComplete, slot.isRunning, slotIndex, onUpdate]);
+
+  useEffect(() => {
+    let interval: number | null = null;
+
+    if (slot.isRunning && slot.timeRemaining > 0) {
+      interval = window.setInterval(() => {
+        if (slot.timeRemaining <= 1) {
+          nextExercise();
+        } else {
+          if (slot.timeRemaining === 4) playBeep();
+          onUpdate(slotIndex, { timeRemaining: slot.timeRemaining - 1 });
+        }
+      }, 1000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [slot.isRunning, slot.timeRemaining, nextExercise, playBeep, slotIndex, onUpdate]);
+
+  const resetSlot = () => {
+    onUpdate(slotIndex, {
+      currentExerciseIndex: 0,
+      isRunning: false,
+      isComplete: false,
+      timeRemaining: sessionExercises[0]?.duration || 0,
+    });
+  };
+
+  const toggleRunning = () => {
+    onUpdate(slotIndex, { isRunning: !slot.isRunning });
+  };
+
+  const skipExercise = () => {
+    nextExercise();
+  };
+
+  const isCompact = totalSlots >= 3;
+  const nextExerciseData = sessionExercises[slot.currentExerciseIndex + 1];
+
+  if (slot.isComplete) {
+    return (
+      <div className="patient-slot patient-slot-complete">
+        <div className="slot-header">
+          <span className="slot-patient-name">
+            {patient?.firstName} {patient?.lastName?.charAt(0)}.
+          </span>
+        </div>
+        <div className="slot-complete-content">
+          <div className="slot-complete-icon">
+            <Check size={isCompact ? 48 : 56} />
+          </div>
+          <h3>Terminé !</h3>
+          <p>{sessionExercises.length} exercices</p>
+          <button className="btn btn-secondary btn-sm" onClick={resetSlot}>
+            <RotateCcw size={16} />
+            Recommencer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`patient-slot ${slot.isRunning ? 'slot-running' : ''}`}>
+      <div className="slot-header">
+        <span className="slot-patient-name">
+          {patient?.firstName} {patient?.lastName?.charAt(0)}.
+        </span>
+        <span className="slot-session-name">{session?.name}</span>
+      </div>
+
+      <div className="slot-progress">
+        <div className="slot-progress-segments">
+          {sessionExercises.map((_, index) => (
+            <div
+              key={index}
+              className={`slot-progress-segment ${
+                index < slot.currentExerciseIndex
+                  ? 'completed'
+                  : index === slot.currentExerciseIndex
+                  ? 'current'
+                  : ''
+              }`}
+            />
+          ))}
+        </div>
+        <span className="slot-progress-text">
+          {slot.currentExerciseIndex + 1} / {sessionExercises.length}
+        </span>
+      </div>
+
+      <div className="slot-content">
+        <div className="slot-left">
+          <h3 className="slot-exercise-name">{currentExercise?.name}</h3>
+          {currentExercise?.instructions && (
+            <p className="slot-instructions">{currentExercise.instructions}</p>
+          )}
+          {nextExerciseData && (
+            <div className="slot-next-exercise">
+              <span className="slot-next-label">Suivant :</span>
+              <span className="slot-next-name">{nextExerciseData.name}</span>
+            </div>
+          )}
+          {!nextExerciseData && slot.currentExerciseIndex === sessionExercises.length - 1 && (
+            <div className="slot-next-exercise slot-next-end">
+              <span className="slot-next-label">Dernier exercice</span>
+            </div>
+          )}
+        </div>
+
+        <div className="slot-right">
+          <div className={`slot-timer ${slot.timeRemaining <= 5 ? 'timer-warning' : ''}`}>
+            {formatTime(slot.timeRemaining)}
+          </div>
+          <div className="slot-controls">
+            <button className="btn-slot-control" onClick={resetSlot} title="Recommencer">
+              <RotateCcw size={20} />
+            </button>
+            <button
+              className={`btn-slot-control btn-slot-play ${slot.isRunning ? 'playing' : ''}`}
+              onClick={toggleRunning}
+            >
+              {slot.isRunning ? <Pause size={28} /> : <Play size={28} />}
+            </button>
+            <button
+              className="btn-slot-control"
+              onClick={skipExercise}
+              disabled={slot.currentExerciseIndex >= sessionExercises.length - 1}
+              title="Exercice suivant"
+            >
+              <SkipForward size={20} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function DisplayMode() {
+  const navigate = useNavigate();
+  const { sessions, patients, getSession, getExercise, addPatientSession, getPatient } = useApp();
+
+  // Configuration state
+  const [isConfiguring, setIsConfiguring] = useState(true);
+  const [slotCount, setSlotCount] = useState<2 | 3 | 4>(2);
+  const [slotConfigs, setSlotConfigs] = useState<PatientSlotConfig[]>([
+    { patientId: '', sessionId: '' },
+    { patientId: '', sessionId: '' },
+  ]);
+
+  // Display state
+  const [slots, setSlots] = useState<PatientSlotState[]>([]);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const playBeep = useCallback(() => {
     if (audioRef.current) {
@@ -46,54 +237,61 @@ export function DisplayMode() {
     }
   }, []);
 
-  const nextExercise = useCallback(() => {
-    if (currentExerciseIndex < sessionExercises.length - 1) {
-      setCurrentExerciseIndex(prev => prev + 1);
-      const nextEx = sessionExercises[currentExerciseIndex + 1];
-      if (nextEx) {
-        setTimeRemaining(nextEx.duration);
-      }
-      playBeep();
-    } else {
-      setIsRunning(false);
-      setIsComplete(true);
-      playBeep();
-      if (patientId && selectedSession) {
-        addPatientSession({
-          patientId,
-          sessionId: selectedSession,
-          notes: '',
-        });
-      }
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleSlotCountChange = (count: 2 | 3 | 4) => {
+    setSlotCount(count);
+    const newConfigs: PatientSlotConfig[] = [];
+    for (let i = 0; i < count; i++) {
+      newConfigs.push(slotConfigs[i] || { patientId: '', sessionId: '' });
     }
-  }, [currentExerciseIndex, sessionExercises, playBeep, patientId, selectedSession, addPatientSession]);
+    setSlotConfigs(newConfigs);
+  };
 
-  useEffect(() => {
-    if (currentExercise && timeRemaining === 0 && !isComplete) {
-      setTimeRemaining(currentExercise.duration);
-    }
-  }, [currentExercise, timeRemaining, isComplete]);
+  const updateSlotConfig = (index: number, field: 'patientId' | 'sessionId', value: string) => {
+    setSlotConfigs(configs =>
+      configs.map((config, i) => (i === index ? { ...config, [field]: value } : config))
+    );
+  };
 
-  useEffect(() => {
-    let interval: number | null = null;
+  const canStartSession = slotConfigs.every(config => config.patientId && config.sessionId);
 
-    if (isRunning && timeRemaining > 0) {
-      interval = window.setInterval(() => {
-        setTimeRemaining(prev => {
-          if (prev <= 1) {
-            nextExercise();
-            return 0;
-          }
-          if (prev === 4) playBeep();
-          return prev - 1;
-        });
-      }, 1000);
-    }
+  const startMultiSession = () => {
+    const initialSlots: PatientSlotState[] = slotConfigs.map(config => {
+      const session = getSession(config.sessionId);
+      const exercises = session?.exercises.sort((a, b) => a.order - b.order) || [];
+      const firstExercise = exercises[0] ? getExercise(exercises[0].exerciseId) : null;
 
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isRunning, timeRemaining, nextExercise, playBeep]);
+      // Enregistrer la session dans l'historique dès le démarrage
+      addPatientSession({
+        patientId: config.patientId,
+        sessionId: config.sessionId,
+        notes: '',
+      });
+
+      return {
+        patientId: config.patientId,
+        sessionId: config.sessionId,
+        currentExerciseIndex: 0,
+        timeRemaining: firstExercise?.duration || 0,
+        isRunning: false,
+        isComplete: false,
+      };
+    });
+
+    setSlots(initialSlots);
+    setIsConfiguring(false);
+  };
+
+  const updateSlot = useCallback((index: number, updates: Partial<PatientSlotState>) => {
+    setSlots(prevSlots =>
+      prevSlots.map((slot, i) => (i === index ? { ...slot, ...updates } : slot))
+    );
+  }, []);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -105,21 +303,6 @@ export function DisplayMode() {
     }
   };
 
-  const resetSession = () => {
-    setCurrentExerciseIndex(0);
-    setIsRunning(false);
-    setIsComplete(false);
-    if (sessionExercises[0]) {
-      setTimeRemaining(sessionExercises[0].duration);
-    }
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
   const exitDisplay = () => {
     if (document.fullscreenElement) {
       document.exitFullscreen();
@@ -127,138 +310,181 @@ export function DisplayMode() {
     navigate('/sessions');
   };
 
-  if (!selectedSession) {
+  const backToConfig = () => {
+    setIsConfiguring(true);
+    setSlots([]);
+  };
+
+  // Global controls
+  const allRunning = slots.length > 0 && slots.every(s => s.isRunning || s.isComplete);
+  const allComplete = slots.length > 0 && slots.every(s => s.isComplete);
+
+  const toggleAllRunning = () => {
+    const shouldRun = !allRunning;
+    setSlots(prevSlots =>
+      prevSlots.map(slot =>
+        slot.isComplete ? slot : { ...slot, isRunning: shouldRun }
+      )
+    );
+  };
+
+  const resetAll = () => {
+    setSlots(prevSlots =>
+      prevSlots.map(slot => {
+        const session = getSession(slot.sessionId);
+        const exercises = session?.exercises.sort((a, b) => a.order - b.order) || [];
+        const firstExercise = exercises[0] ? getExercise(exercises[0].exerciseId) : null;
+
+        return {
+          ...slot,
+          currentExerciseIndex: 0,
+          timeRemaining: firstExercise?.duration || 0,
+          isRunning: false,
+          isComplete: false,
+        };
+      })
+    );
+  };
+
+  // Configuration screen
+  if (isConfiguring) {
     return (
-      <div className="display-select">
-        <h2>Mode Affichage</h2>
-        <p>Sélectionnez une session à afficher</p>
-        <div className="session-select-grid">
-          {sessions.length === 0 ? (
-            <p className="empty-state">Aucune session disponible. Créez-en une d'abord.</p>
-          ) : (
-            sessions.map(s => (
-              <button
-                key={s.id}
-                className="session-select-card"
-                onClick={() => setSelectedSession(s.id)}
-              >
-                <h3>{s.name}</h3>
-                <span>{s.exercises.length} exercices</span>
-              </button>
-            ))
-          )}
+      <div className="multi-config">
+        <div className="multi-config-header">
+          <h2>
+            <Users size={28} />
+            Affichage Multi-Patients
+          </h2>
+          <p>Configurez la séance pour plusieurs patients simultanément</p>
+        </div>
+
+        <div className="multi-config-content">
+          <div className="slot-count-selector">
+            <label>Nombre de patients :</label>
+            <div className="slot-count-buttons">
+              {([2, 3, 4] as const).map(count => (
+                <button
+                  key={count}
+                  className={`slot-count-btn ${slotCount === count ? 'active' : ''}`}
+                  onClick={() => handleSlotCountChange(count)}
+                >
+                  {count} patients
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="slot-configs">
+            {slotConfigs.map((config, index) => (
+              <div key={index} className="slot-config-card">
+                <h4>Patient {index + 1}</h4>
+
+                <div className="form-group">
+                  <label>Patient</label>
+                  <select
+                    value={config.patientId}
+                    onChange={e => updateSlotConfig(index, 'patientId', e.target.value)}
+                  >
+                    <option value="">Sélectionner un patient</option>
+                    {patients.map(patient => (
+                      <option key={patient.id} value={patient.id}>
+                        {patient.firstName} {patient.lastName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Session</label>
+                  <select
+                    value={config.sessionId}
+                    onChange={e => updateSlotConfig(index, 'sessionId', e.target.value)}
+                  >
+                    <option value="">Sélectionner une session</option>
+                    {sessions.map(session => (
+                      <option key={session.id} value={session.id}>
+                        {session.name} ({session.exercises.length} exercices)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="multi-config-actions">
+            <button className="btn btn-secondary" onClick={() => navigate('/sessions')}>
+              Annuler
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={startMultiSession}
+              disabled={!canStartSession}
+            >
+              <Play size={20} />
+              Démarrer la séance
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (!session || sessionExercises.length === 0) {
-    return (
-      <div className="display-select">
-        <h2>Session non trouvée</h2>
-        <button className="btn btn-primary" onClick={() => setSelectedSession(null)}>
-          Retour
-        </button>
-      </div>
-    );
-  }
-
+  // Multi-patient display
   return (
-    <div ref={containerRef} className={`display-mode ${isFullscreen ? 'fullscreen' : ''}`}>
-      <audio ref={audioRef} src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleWknNYLa5dChXT8fKnnh8tnJkz8A" />
+    <div
+      ref={containerRef}
+      className={`display-mode multi-display ${isFullscreen ? 'fullscreen' : ''}`}
+    >
+      <audio
+        ref={audioRef}
+        src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleWknNYLa5dChXT8fKnnh8tnJkz8A"
+      />
 
-      <div className="display-header">
-        {patient && (
-          <div className="patient-badge">
-            Patient : {patient.firstName} {patient.lastName}
-          </div>
-        )}
-        <h1 className="session-title">{session.name}</h1>
+      <div className="multi-display-header">
+        <button className="btn-back" onClick={backToConfig}>
+          <ChevronLeft size={20} />
+          Configuration
+        </button>
+
+        <div className="global-controls">
+          {!allComplete && (
+            <>
+              <button className="btn-global" onClick={resetAll} title="Tout recommencer">
+                <RotateCcw size={20} />
+              </button>
+              <button
+                className={`btn-global btn-global-play ${allRunning ? 'playing' : ''}`}
+                onClick={toggleAllRunning}
+                title={allRunning ? 'Tout mettre en pause' : 'Tout démarrer'}
+              >
+                {allRunning ? <Pause size={24} /> : <Play size={24} />}
+              </button>
+            </>
+          )}
+        </div>
+
         <button className="btn-close" onClick={exitDisplay}>
           <X size={24} />
         </button>
       </div>
 
-      {isComplete ? (
-        <div className="display-complete">
-          <div className="complete-icon">
-            <Check size={80} />
-          </div>
-          <h2>Session terminée !</h2>
-          <p>{sessionExercises.length} exercices complétés</p>
-          <div className="complete-actions">
-            <button className="btn btn-secondary" onClick={resetSession}>
-              <RotateCcw size={20} />
-              Recommencer
-            </button>
-            <button className="btn btn-primary" onClick={exitDisplay}>
-              Terminer
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="progress-section">
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
-            </div>
-            <div className="progress-text">
-              Exercice {currentExerciseIndex + 1} / {sessionExercises.length}
-            </div>
-          </div>
-
-          <div className="exercise-display">
-            <h2 className="exercise-name">{currentExercise?.name}</h2>
-
-            <div className={`timer ${timeRemaining <= 5 ? 'timer-warning' : ''}`}>
-              {formatTime(timeRemaining)}
-            </div>
-
-            {currentExercise?.instructions && (
-              <div className="exercise-instructions">
-                {currentExercise.instructions}
-              </div>
-            )}
-          </div>
-
-          <div className="display-controls">
-            <button className="btn-control" onClick={resetSession} title="Recommencer">
-              <RotateCcw size={28} />
-            </button>
-
-            <button
-              className={`btn-control btn-play ${isRunning ? 'playing' : ''}`}
-              onClick={() => setIsRunning(!isRunning)}
-            >
-              {isRunning ? <Pause size={40} /> : <Play size={40} />}
-            </button>
-
-            <button
-              className="btn-control"
-              onClick={nextExercise}
-              disabled={currentExerciseIndex >= sessionExercises.length - 1}
-              title="Exercice suivant"
-            >
-              <SkipForward size={28} />
-            </button>
-          </div>
-
-          <div className="upcoming-exercises">
-            <h4>À venir</h4>
-            <div className="upcoming-list">
-              {sessionExercises.slice(currentExerciseIndex + 1, currentExerciseIndex + 4).map((ex, i) => (
-                <div key={i} className="upcoming-item">
-                  <span className="upcoming-number">{currentExerciseIndex + 2 + i}</span>
-                  <span className="upcoming-name">{ex?.name}</span>
-                </div>
-              ))}
-              {currentExerciseIndex >= sessionExercises.length - 1 && (
-                <div className="upcoming-item upcoming-end">Fin de la session</div>
-              )}
-            </div>
-          </div>
-        </>
-      )}
+      <div className={`multi-display-grid slots-${slots.length}`}>
+        {slots.map((slot, index) => (
+          <PatientSlot
+            key={`${slot.patientId}-${index}`}
+            slot={slot}
+            slotIndex={index}
+            onUpdate={updateSlot}
+            getSession={getSession}
+            getExercise={getExercise}
+            getPatient={getPatient}
+            formatTime={formatTime}
+            playBeep={playBeep}
+            totalSlots={slots.length}
+          />
+        ))}
+      </div>
 
       <button className="btn-fullscreen" onClick={toggleFullscreen}>
         {isFullscreen ? 'Quitter plein écran' : 'Plein écran'}

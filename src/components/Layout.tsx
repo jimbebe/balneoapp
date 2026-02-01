@@ -13,7 +13,7 @@ export function Layout() {
     <div className="app-layout">
       <nav className="sidebar">
         <div className="logo">
-          <h1>BalnéoApp</h1>
+          <h1>ForméO</h1>
         </div>
         <ul className="nav-links">
           <li>
